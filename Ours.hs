@@ -136,7 +136,21 @@ sequence res
 return ()
 )
 
+mazeSolving = GradTest.TestCase (do
+res <- return $ do
+    dim <- [3..10]
+    _ <- [1..3]
+    maze <- return (gradDoDfs $ gradMkMaze dim dim)
+    return $ GradTest.assertEqual
+        "Maze solution"
+        (GradSet.fromList $ gradDfsPath maze (1, 1) (dim-1, dim-1))
+        (GradSet.fromList $ solvePerfect maze (1, 1) (dim-1, dim-1))
+sequence res
+return ()
+)
+
 tests = GradTest.TestList
-    [ GradTest.TestLabel "Empty maze creation" mazeCreation ]
+    [ GradTest.TestLabel "Empty maze creation" mazeCreation
+    , GradTest.TestLabel "Maze solving" mazeSolving ]
 
 gradMain = GradTest.runTestTT tests
