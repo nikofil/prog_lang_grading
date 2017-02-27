@@ -1,25 +1,31 @@
 
 data GradDir = N | S | E | W | None deriving (Show, Eq)
 
-gradShow m = putStrLn $ concat (replicate (width m) "+---") ++ "+" ++ gradShowMaze (unzip $ cells m) (width m)
+gradShow :: Maze -> [(Int, Int)] -> String
+gradShow m marked = concat (GradList.replicate (width m) "+---") ++ "+" ++ gradShowMaze (unzip $ cells m) (width m) marked 0
 
-gradShowMaze :: ([Bool], [Bool]) -> Int -> [Char]
-gradShowMaze (eastWs, southWs) w
+gradShowMaze :: ([Bool], [Bool]) -> Int -> [(Int, Int)] -> Int -> [Char]
+gradShowMaze (eastWs, southWs) w cells yy
     | eastWs == [] && southWs == [] = ""
-    | otherwise = gradShowRow eastWsFront "\n|" "    " "   |"
-        ++ gradShowRow southWsFront "\n+" "   +" "---+"
-        ++ gradShowMaze (eastWsBack, southWsBack) w
-    where (eastWsFront, eastWsBack) = splitAt w eastWs
-          (southWsFront, southWsBack) = splitAt w southWs
+    | otherwise = gradShowRow eastWsFront "\n|" "    " "   |" " *  " " * |" (fmap fst (GradList.filter ((==yy).snd) cells))
+        ++ gradShowRow southWsFront "\n+" "   +" "---+" "" "" []
+        ++ gradShowMaze (eastWsBack, southWsBack) w cells (yy + 1)
+    where (eastWsFront, eastWsBack) = GradList.splitAt w eastWs
+          (southWsFront, southWsBack) = GradList.splitAt w southWs
  
-gradShowRow :: [Bool] -> [a] -> [a] -> [a] -> [a]
-gradShowRow row start open closed = start ++ concatMap (\x -> if x == True then closed else open) row
+gradShowRow :: [Bool] -> [a] -> [a] -> [a] -> [a] -> [a] -> [Int] -> [a]
+gradShowRow row start open closed openm closedm marked =
+            start ++ concatMap getStrRepr (GradList.zip row $ fmap (flip GradList.elem marked) [0..])
+            where getStrRepr xx = case xx of (True, True) -> closedm
+                                             (True, False) -> closed
+                                             (False, True) -> openm
+                                             (False, False) -> open
 
 gradMkMaze :: Int -> Int -> Maze
-gradMkMaze w h = Maze (take (w*h) $ repeat (True, True)) w h
+gradMkMaze w h = Maze (GradList.take (w*h) $ repeat (True, True)) w h
 
 gradUpdateList :: [a] -> Int -> a -> [a]
-gradUpdateList l idx e = xs ++ e : ys where (xs, _:ys) = splitAt idx l
+gradUpdateList l idx e = xs ++ e : ys where (xs, _:ys) = GradList.splitAt idx l
  
 gradGet :: Maze -> (Int, Int) -> (Bool, Bool)
 gradGet m (x, y) = (cells m) !! (y * (width m) + x)
@@ -59,7 +65,7 @@ gradNeighbors' m p = GradList.filter (gradFilterOOB m) $ fmap (\x -> gradDirPos 
 gradDoDfs :: Maze -> Maze
 gradDoDfs m = let sx = rand $ width m
                   sy = rand $ height m
-                  visited = replicate ((width m) * (height m)) False in
+                  visited = GradList.replicate ((width m) * (height m)) False in
               gradStep m [((sx, sy), None)] visited
  
 gradAddPath :: Maze -> (Int, Int) -> GradDir -> Maze
@@ -139,7 +145,7 @@ return ()
 mazeSolving = GradTest.TestCase (do
 res <- return $ do
     dim <- [3..10]
-    _ <- [1..3]
+    _ <- [1..10]
     maze <- return (gradDoDfs $ gradMkMaze dim dim)
     return $ GradTest.assertEqual
         "Maze solution"
@@ -149,8 +155,23 @@ sequence res
 return ()
 )
 
+mazeRepresentation = GradTest.TestCase (do
+res <- return $ do
+    dim <- [3..8]
+    _ <- [1..3]
+    maze <- return (gradDoDfs $ gradMkMaze dim dim)
+    marked <- return (gradDfsPath maze (0,0) (dim-1,dim-1))
+    return $ GradTest.assertEqual
+        "Maze representation"
+        (GradList.reverse $ GradList.dropWhile GradChar.isSpace $ GradList.reverse $ gradShow maze marked)
+        (GradList.reverse $ GradList.dropWhile GradChar.isSpace $ GradList.reverse $ showMaze maze marked)
+sequence res
+return ()
+)
+
 tests = GradTest.TestList
     [ GradTest.TestLabel "Empty maze creation" mazeCreation
-    , GradTest.TestLabel "Maze solving" mazeSolving ]
+    , GradTest.TestLabel "Maze solving" mazeSolving
+    , GradTest.TestLabel "Maze string representation" mazeRepresentation ]
 
 gradMain = GradTest.runTestTT tests
