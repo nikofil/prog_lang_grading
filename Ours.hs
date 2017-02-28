@@ -129,7 +129,7 @@ gradDfsPathHelper :: (Int, Int) -> Maze -> (Int, Int) -> (Int, Int) -> Maybe [(I
 gradDfsPathHelper prev m target cur = if cur == target then Just [cur]
                                   else fmap ((:) cur) $ msum $ Nothing : (fmap (gradDfsPathHelper cur m target) $ GradList.delete prev (gradNeighborsAccessible m cur))
 
-mazeCreation = GradTest.TestCase (do
+mazeCreationTest = GradTest.TestCase (do
 res <- return $ do
     w <- [1..5]
     h <- [1..5]
@@ -142,7 +142,25 @@ sequence res
 return ()
 )
 
-mazeSolving = GradTest.TestCase (do
+mazeKruskalTestHelper maze cur prev vis =
+    if GradSet.member cur vis
+    then [GradTest.assertFailure "Cycle detected"]
+    else [return ()] ++ concatMap
+        (\next -> mazeKruskalTestHelper maze next cur $ GradSet.insert cur vis)
+        (GradList.filter (/=prev) $ gradNeighborsAccessible maze cur)
+
+mazeKruskalTest = GradTest.TestCase (do
+res <- return $ do
+    dim <- [3..10]
+    _ <- [1..10]
+    maze <- return (kruskal $ makeMaze dim dim)
+    let res = mazeKruskalTestHelper maze (0,0) (-1,-1) GradSet.empty in
+        res ++ [GradTest.assertEqual "Cells reachable" (dim*dim) (length res)]
+sequence res
+return ()
+)
+
+mazeSolvingTest = GradTest.TestCase (do
 res <- return $ do
     dim <- [3..10]
     _ <- [1..10]
@@ -155,7 +173,7 @@ sequence res
 return ()
 )
 
-mazeRepresentation = GradTest.TestCase (do
+mazeRepresentationTest = GradTest.TestCase (do
 res <- return $ do
     dim <- [3..8]
     _ <- [1..3]
@@ -170,8 +188,9 @@ return ()
 )
 
 tests = GradTest.TestList
-    [ GradTest.TestLabel "Empty maze creation" mazeCreation
-    , GradTest.TestLabel "Maze solving" mazeSolving
-    , GradTest.TestLabel "Maze string representation" mazeRepresentation ]
+    [ GradTest.TestLabel "Empty maze creation" mazeCreationTest
+    , GradTest.TestLabel "Kruskal maze generation" mazeKruskalTest
+    , GradTest.TestLabel "Maze solving" mazeSolvingTest
+    , GradTest.TestLabel "Maze string representation" mazeRepresentationTest ]
 
 gradMain = GradTest.runTestTT tests
