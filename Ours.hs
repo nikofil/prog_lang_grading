@@ -178,7 +178,7 @@ res <- return $ do
     dim <- [3..8]
     _ <- [1..3]
     maze <- return (gradDoDfs $ gradMkMaze dim dim)
-    marked <- return (gradDfsPath maze (0,0) (dim-1,dim-1))
+    marked <- return (gradDfsPath maze (0,0) (dim-1, dim-1))
     return $ GradTest.assertEqual
         "Maze representation"
         (GradList.reverse $ GradList.dropWhile GradChar.isSpace $ GradList.reverse $ gradShow maze marked)
@@ -187,10 +187,41 @@ sequence res
 return ()
 )
 
+braidCreationTest = GradTest.TestCase (do
+res <- return $ do
+    dim <- [3..8]
+    _ <- [1..3]
+    maze <- return (braid $ gradDoDfs $ gradMkMaze dim dim)
+    [GradTest.assertBool
+        "No dead ends"
+        ((>1).length $ gradNeighborsAccessible maze (x, y)) | x <- [0..dim-1], y <- [0..dim-1]]
+sequence res
+return ()
+)
+
+braidSolveTestHelper maze (_:[]) = []
+braidSolveTestHelper maze (s1:s2:sol) =
+    (GradTest.assertBool "Valid path" $ GradList.elem s2 $ gradNeighborsAccessible maze s1) : (braidSolveTestHelper maze (s2:sol))
+
+braidSolveTest = GradTest.TestCase (do
+res <- return $ do
+    dim <- [3..8]
+    _ <- [1..10]
+    maze <- return (braid $ gradDoDfs $ gradMkMaze dim dim)
+    solution <- return (solveBraid maze (1,1) (dim-1, dim-1))
+    [GradTest.assertBool "Start node in path" $ GradList.elem (1,1) solution
+        , GradTest.assertBool "End node in path" $ GradList.elem (dim-1, dim-1) solution
+        ] ++ (braidSolveTestHelper maze solution)
+sequence res
+return ()
+)
+
 tests = GradTest.TestList
     [ GradTest.TestLabel "Empty maze creation" mazeCreationTest
     , GradTest.TestLabel "Kruskal maze generation" mazeKruskalTest
     , GradTest.TestLabel "Maze solving" mazeSolvingTest
-    , GradTest.TestLabel "Maze string representation" mazeRepresentationTest ]
+    , GradTest.TestLabel "Maze string representation" mazeRepresentationTest
+    , GradTest.TestLabel "Braid maze creation" braidCreationTest
+    , GradTest.TestLabel "Braid maze solving" braidSolveTest ]
 
 gradMain = GradTest.runTestTT tests
