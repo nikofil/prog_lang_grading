@@ -155,7 +155,7 @@ res <- return $ do
     _ <- [1..10]
     maze <- return (kruskal $ makeMaze dim dim)
     let res = mazeKruskalTestHelper maze (0,0) (-1,-1) GradSet.empty in
-        res ++ [GradTest.assertEqual "Cells reachable" (dim*dim) (length res)]
+        res ++ [GradTest.assertEqual "Cells reachable" (dim*dim) (GradList.length res)]
 sequence res
 return ()
 )
@@ -194,7 +194,7 @@ res <- return $ do
     maze <- return (braid $ gradDoDfs $ gradMkMaze dim dim)
     [GradTest.assertBool
         "No dead ends"
-        ((>1).length $ gradNeighborsAccessible maze (x, y)) | x <- [0..dim-1], y <- [0..dim-1]]
+        ((>1).(GradList.length) $ gradNeighborsAccessible maze (x, y)) | x <- [0..dim-1], y <- [0..dim-1]]
 sequence res
 return ()
 )
