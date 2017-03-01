@@ -142,6 +142,7 @@ sequence res
 return ()
 )
 
+#ifndef kruskal
 mazeKruskalTestHelper maze cur prev vis =
     if GradSet.member cur vis
     then [GradTest.assertFailure "Cycle detected"]
@@ -159,7 +160,9 @@ res <- return $ do
 sequence res
 return ()
 )
+#endif
 
+#ifndef solve
 mazeSolvingTest = GradTest.TestCase (do
 res <- return $ do
     dim <- [3..10]
@@ -172,7 +175,9 @@ res <- return $ do
 sequence res
 return ()
 )
+#endif
 
+#ifndef show
 mazeRepresentationTest = GradTest.TestCase (do
 res <- return $ do
     dim <- [3..8]
@@ -186,7 +191,9 @@ res <- return $ do
 sequence res
 return ()
 )
+#endif
 
+#ifndef braid
 braidCreationTest = GradTest.TestCase (do
 res <- return $ do
     dim <- [3..8]
@@ -215,13 +222,23 @@ res <- return $ do
 sequence res
 return ()
 )
+#endif
 
 tests = GradTest.TestList
     [ GradTest.TestLabel "Empty maze creation" mazeCreationTest
+    #ifndef kruskal
     , GradTest.TestLabel "Kruskal maze generation" mazeKruskalTest
+    #endif
+    #ifndef solve
     , GradTest.TestLabel "Maze solving" mazeSolvingTest
+    #endif
+    #ifndef show
     , GradTest.TestLabel "Maze string representation" mazeRepresentationTest
+    #endif
+    #ifndef braid
     , GradTest.TestLabel "Braid maze creation" braidCreationTest
-    , GradTest.TestLabel "Braid maze solving" braidSolveTest ]
+    , GradTest.TestLabel "Braid maze solving" braidSolveTest
+    #endif
+    ]
 
 gradMain = GradTest.runTestTT tests

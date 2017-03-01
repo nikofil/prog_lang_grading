@@ -1,3 +1,3 @@
 #!/bin/sh
-cat OursImps.hs $1 Ours.hs > runnable.hs
+cpp -w -P $2 Ours.hs | cat OursImps.hs $1 - > runnable.hs
 echo gradMain | ghci runnable.hs
