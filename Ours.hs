@@ -151,8 +151,8 @@ mazeKruskalTestHelper maze cur prev vis =
 
 mazeKruskalTest = GradTest.TestCase (do
 res <- return $ do
-    dim1 <- [2..10]
-    dim2 <- [2..10]
+    dim1 <- [1..10]
+    dim2 <- [1..10]
     _ <- [1..10]
     maze <- return (kruskal $ makeMaze dim1 dim2)
     let res = mazeKruskalTestHelper maze (0,0) (-1,-1) GradSet.empty in
