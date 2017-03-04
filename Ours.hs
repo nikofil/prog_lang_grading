@@ -1,8 +1,7 @@
-
 data GradDir = N | S | E | W | None deriving (Show, Eq)
 
 gradShow :: Maze -> [(Int, Int)] -> String
-gradShow m marked = concat (GradList.replicate (width m) "+---") ++ "+" ++ gradShowMaze (unzip $ cells m) (width m) marked 0
+gradShow m marked = GradList.concat (GradList.replicate (width m) "+---") ++ "+" ++ gradShowMaze (unzip $ cells m) (width m) marked 0
 
 gradShowMaze :: ([Bool], [Bool]) -> Int -> [(Int, Int)] -> Int -> [Char]
 gradShowMaze (eastWs, southWs) w cells yy
@@ -15,7 +14,7 @@ gradShowMaze (eastWs, southWs) w cells yy
  
 gradShowRow :: [Bool] -> [a] -> [a] -> [a] -> [a] -> [a] -> [Int] -> [a]
 gradShowRow row start open closed openm closedm marked =
-            start ++ concatMap getStrRepr (GradList.zip row $ fmap (flip GradList.elem marked) [0..])
+            start ++ GradList.concatMap getStrRepr (GradList.zip row $ fmap (flip GradList.elem marked) [0..])
             where getStrRepr xx = case xx of (True, True) -> closedm
                                              (True, False) -> closed
                                              (False, True) -> openm
@@ -114,7 +113,7 @@ gradConnected cell_sets ((x1, y1), (x2, y2)) w =
           set2 = cell_sets !! (y2 * w + x2)
  
 gradConnect m cell_sets ((x1, y1), (x2, y2)) =
-    fmap (\(x, y) -> if elem (x, y) unionCells == True then union
+    fmap (\(x, y) -> if GradList.elem (x, y) unionCells == True then union
                     else cell_sets !! (y * (width m) + x) ) cells
     where set1 = cell_sets !! (y1 * (width m) + x1)
           set2 = cell_sets !! (y2 * (width m) + x2)
@@ -127,7 +126,7 @@ gradDfsPath m start end = fromJust $ gradDfsPathHelper (-1, -1) m end start
  
 gradDfsPathHelper :: (Int, Int) -> Maze -> (Int, Int) -> (Int, Int) -> Maybe [(Int, Int)]
 gradDfsPathHelper prev m target cur = if cur == target then Just [cur]
-                                  else fmap ((:) cur) $ msum $ Nothing : (fmap (gradDfsPathHelper cur m target) $ GradList.delete prev (gradNeighborsAccessible m cur))
+                                  else fmap ((:) cur) $ Control.Monad.msum $ Nothing : (fmap (gradDfsPathHelper cur m target) $ GradList.delete prev (gradNeighborsAccessible m cur))
 
 mazeCreationTest = GradTest.TestCase (do
 res <- return $ do
@@ -146,17 +145,18 @@ return ()
 mazeKruskalTestHelper maze cur prev vis =
     if GradSet.member cur vis
     then [GradTest.assertFailure "Cycle detected"]
-    else [return ()] ++ concatMap
+    else [return ()] ++ GradList.concatMap
         (\next -> mazeKruskalTestHelper maze next cur $ GradSet.insert cur vis)
         (GradList.filter (/=prev) $ gradNeighborsAccessible maze cur)
 
 mazeKruskalTest = GradTest.TestCase (do
 res <- return $ do
-    dim <- [3..10]
+    dim1 <- [2..10]
+    dim2 <- [2..10]
     _ <- [1..10]
-    maze <- return (kruskal $ makeMaze dim dim)
+    maze <- return (kruskal $ makeMaze dim1 dim2)
     let res = mazeKruskalTestHelper maze (0,0) (-1,-1) GradSet.empty in
-        res ++ [GradTest.assertEqual "Cells reachable" (dim*dim) (GradList.length res)]
+        res ++ [GradTest.assertEqual "Cells reachable" (dim1*dim2) (GradList.length res)]
 sequence res
 return ()
 )
@@ -165,13 +165,14 @@ return ()
 #ifndef solve
 mazeSolvingTest = GradTest.TestCase (do
 res <- return $ do
-    dim <- [3..10]
+    dim1 <- [1..10]
+    dim2 <- [1..10]
     _ <- [1..10]
-    maze <- return (gradDoDfs $ gradMkMaze dim dim)
+    maze <- return (gradDoDfs $ gradMkMaze dim1 dim2)
     return $ GradTest.assertEqual
         "Maze solution"
-        (GradSet.fromList $ gradDfsPath maze (1, 1) (dim-1, dim-1))
-        (GradSet.fromList $ solvePerfect maze (1, 1) (dim-1, dim-1))
+        (GradSet.fromList $ gradDfsPath maze (0,0) (dim1-1,dim2-1))
+        (GradSet.fromList $ solvePerfect maze (0,0) (dim1-1,dim2-1))
 sequence res
 return ()
 )
@@ -180,10 +181,11 @@ return ()
 #ifndef show
 mazeRepresentationTest = GradTest.TestCase (do
 res <- return $ do
-    dim <- [3..8]
+    dim1 <- [1..10]
+    dim2 <- [1..10]
     _ <- [1..3]
-    maze <- return (gradDoDfs $ gradMkMaze dim dim)
-    marked <- return (gradDfsPath maze (0,0) (dim-1, dim-1))
+    maze <- return (gradDoDfs $ gradMkMaze dim1 dim2)
+    marked <- return (gradDfsPath maze (0,0) (dim1-1, dim2-1))
     return $ GradTest.assertEqual
         "Maze representation"
         (GradList.reverse $ GradList.dropWhile GradChar.isSpace $ GradList.reverse $ gradShow maze marked)
@@ -196,12 +198,13 @@ return ()
 #ifndef braid
 braidCreationTest = GradTest.TestCase (do
 res <- return $ do
-    dim <- [3..8]
+    dim1 <- [2..10]
+    dim2 <- [2..10]
     _ <- [1..3]
-    maze <- return (braid $ gradDoDfs $ gradMkMaze dim dim)
+    maze <- return (braid $ gradDoDfs $ gradMkMaze dim1 dim2)
     [GradTest.assertBool
-        "No dead ends"
-        ((>1).(GradList.length) $ gradNeighborsAccessible maze (x, y)) | x <- [0..dim-1], y <- [0..dim-1]]
+        ("No dead ends" ++ " " ++ show dim1 ++ " " ++ show dim2)
+        ((>1).(GradList.length) $ gradNeighborsAccessible maze (x, y)) | x <- [0..dim1-1], y <- [0..dim2-1]]
 sequence res
 return ()
 )
